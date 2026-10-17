@@ -4,6 +4,7 @@ import { deviceList, devices } from './scene/devices'
 import { Icon, type IconName } from './ui/Icon'
 import { DeviceExperience } from './ui/DeviceExperience'
 import { SceneLabels } from './ui/SceneLabels'
+import { AssetStatus } from './ui/AssetStatus'
 
 const OfficeCanvas = lazy(() => import('./scene/OfficeCanvas'))
 const icons: Record<DeviceId, IconName> = { computer: 'desktop', phone: 'phone', console: 'gamepad' }
@@ -59,6 +60,7 @@ export default function App() {
       <h1 className="sr-only">Quiet Space — an office for ideas</h1>
       <div className="office-canvas"><Suspense fallback={<div className="scene-loading" role="status"><span className="loading-ring" />Opening the office…</div>}><OfficeCanvas labelElements={labelElements} screenElement={screenElement} onUnavailable={markUnavailable} /></Suspense></div>
       <div className="scene-vignette" aria-hidden="true" />
+      <AssetStatus />
       <header className="office-hud">
         <span className="brand"><span className="brand-mark"><Icon name="terminal" size={21} /></span><span>quiet space<span className="brand-dot">.</span><small>AN OFFICE FOR IDEAS</small></span></span>
         <div className="hud-controls">

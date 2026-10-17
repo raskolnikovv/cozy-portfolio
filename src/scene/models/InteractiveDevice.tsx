@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useNavigation, type DeviceId } from '../../state/navigation'
-import { getPlacement, isCompact } from '../devices'
+import { getHitboxes, getPlacement, isCompact } from '../devices'
 
 export function InteractiveDevice({ id, children, placed = false }: { id: DeviceId; children: ReactNode; placed?: boolean }) {
   const compact = useThree((s) => isCompact(s.size.width / s.size.height))
@@ -21,11 +21,21 @@ export function InteractiveDevice({ id, children, placed = false }: { id: Device
     <group
       position={placed ? undefined : placement.position}
       scale={placed ? undefined : placement.scale}
-      onPointerOver={(event) => { event.stopPropagation(); if (enabled) setHovered(id) }}
-      onPointerOut={() => setHovered(null)}
-      onClick={(event) => { event.stopPropagation(); if (enabled) navigate(id) }}
     >
-      <group scale={hovered && enabled ? 1.015 : 1}>{children}</group>
+      <group name={`${id}-visual`} scale={hovered && enabled ? 1.015 : 1}>{children}</group>
+      <group
+        name={`${id}-interaction`}
+        onPointerOver={(event) => { event.stopPropagation(); if (enabled) setHovered(id) }}
+        onPointerOut={() => setHovered(null)}
+        onClick={(event) => { event.stopPropagation(); if (enabled) navigate(id) }}
+      >
+        {getHitboxes(id, compact).map((hitbox, index) => (
+          // Invisible meshes still raycast; they add no visible draw calls or shadows.
+          <mesh key={index} position={hitbox.center} visible={false}>
+            <boxGeometry args={hitbox.size} />
+          </mesh>
+        ))}
+      </group>
     </group>
   )
 }

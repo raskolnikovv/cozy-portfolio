@@ -140,6 +140,9 @@ h1, h2, p { margin: 0; }
 .scene-fallback h2 { font: 32px Georgia, serif; }
 .scene-fallback p { max-width: 320px; font-size: 13px; line-height: 1.8; }
 .fallback-icon { font-size: 38px; }
+.asset-notice { position: absolute; z-index: 5; bottom: 70px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 40px); color: #f7eed8; background: #263c33ed; border-radius: 8px; font-size: 12px; line-height: 1.5; text-align: center; pointer-events: none; }
+.asset-notice:not(:empty) { padding: 8px 12px; }
+.asset-notice span { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @container (max-width: 650px) {
   .window-dots { display: none; }

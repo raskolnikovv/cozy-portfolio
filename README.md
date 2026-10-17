@@ -5,6 +5,8 @@ interface: a computer straight ahead, a smartphone on the right, and a TV/consol
 on the left, with a rainy forest outside the window.
 
 **Phase 1.5** replaces the earlier editorial landing page and isometric diorama.
+**Phase 1.6** prepares optional device models without changing that composition:
+independent hitboxes, lazy GLTF loading, per-slot fallbacks, and an asset contract.
 Device screens are interactive prototypes: web-project tabs, an app launcher, and
 a game library with a reserved Pirate Battle entry. There are no real applications,
 playable games, backend, audio, or rain simulation yet.
@@ -106,7 +108,7 @@ variables, credentials, or external services are required.
 | Local Wi-Fi/LAN | Run `npm run dev -- --port 5173 --strictPort` on your computer. Connect the phone to the same network and enter `http://<computer-lan-ip>:5173` in its browser. Use your computer's LAN address, not `0.0.0.0` or the phone's loopback address. | The computer must remain running; its firewall and Wi-Fi must allow device-to-device connections. For a built preview, run `npm run build` then `npm run preview -- --port 4173 --strictPort` and use port 4173. |
 | Cloud port forwarding | If the Cloud provider offers an authenticated forwarded port or HTTPS preview URL, forward 5173 and open the provider-issued URL on the phone. | This onboarding UI does not currently provide a supported web preview link. A container's private IP or loopback address is not reachable from your phone. Publishing an environment snapshot does not deploy the website. |
 | Approved tunnel | A separately configured HTTPS tunnel can forward the dev or preview server to a phone-accessible URL. | Requires a tunnel service, suitable access controls, and explicit authorization before exposing the server. No tunnel is configured by this project. |
-| Static preview deployment | After an explicitly authorized deployment, open the hosting provider's HTTPS URL. Build with `npm run build` and publish `dist/`. | Requires a hosting destination and deployment setup; none is currently configured. |
+| Static preview deployment | The current site is [ehve-portifolio.netlify.app](https://ehve-portifolio.netlify.app/). Build with `npm run build` and publish `dist/`. | The Git-connected Netlify site updates after an authorized push to its deployment branch. Local commits alone do not change the deployed version. |
 
 Desktop browser device emulation is useful for checking layout before using a
 phone, but it does not replace real touch/WebGL performance testing. On the phone,
@@ -127,9 +129,10 @@ npm run typecheck && npm run lint && npm test && npm run build
 
 Review the staged diff and stage only relevant files. Preserve working features;
 do not push automatically or rewrite history. `npm test` uses Node's built-in test
-runner and type stripping, without another test dependency. Its six regression
-tests cover atomic entry, cancellation, stale completion, hover guards, eye-level
-room bounds, and viewport/screen fitting. UI and visual changes also need browser
+runner and type stripping, without another test dependency. Regression tests cover
+atomic entry, cancellation, stale completion, hover guards, eye-level room bounds,
+viewport/screen fitting, hitboxes, asset-state isolation, and cached model instances.
+UI and visual changes also need browser
 smoke checks as described in `AGENTS.md`. The production build emits a non-failing
 Three.js chunk-size warning; R3F also triggers an upstream `THREE.Clock` deprecation.
 Report these warnings rather than suppressing them.
@@ -161,7 +164,8 @@ has been built.
 ```text
 src/
   scene/
-    devices.ts              # Placements, screen bounds, responsive camera poses
+    devices.ts              # Placements, independent hitboxes, screen bounds, camera poses
+    assets/                 # Optional model catalog, lazy loader, per-slot fallbacks
     CameraRig.tsx           # GSAP travel and bounded desktop pointer look
     OfficeCanvas.tsx        # Renderer, lighting, WebGL/error fallback
     LabelProjection.tsx     # World-anchored HTML navigation labels
@@ -169,27 +173,38 @@ src/
     models/
       Office.tsx            # Room, forest, furniture, simple decorations
       Devices.tsx           # Replaceable devices and phone pickup animation
-      InteractiveDevice.tsx # Shared guarded pointer interactions
+      InteractiveDevice.tsx # Guarded invisible hitboxes separate from visual meshes
       Primitives.tsx        # Small reusable geometry helpers
   state/navigation.ts       # View, hover, transition lock and generation IDs
+  state/assets.ts           # Model readiness/failure; independent of navigation
   hooks/useReducedMotion.ts
   ui/
     DeviceExperience.tsx    # Screen composition and readiness/focus handling
     SceneLabels.tsx         # Accessible device entry controls
+    AssetStatus.tsx         # Discreet accessible model-loading/failure status
     devices/                # Computer, phone, and console HTML interfaces
     Icon.tsx
   App.tsx                   # Full viewport, minimal HUD/menu, Escape, return focus
   styles.css                # Tailwind entry, HUD and responsive screen interfaces
-tests/navigation.test.mjs    # Six native Node navigation/framing regressions
+tests/                      # Native Node navigation, framing, and asset regressions
+docs/ASSETS.md               # Export contract and asset replacement checklist
 ```
 
 ### Replacing models
 
-Replace geometry inside `InteractiveDevice` with a normalized GLB, retaining its
-device identity, interaction wrapper, and phone animation boundaries. World
-placements and local screen bounds live in `scene/devices.ts`; navigation does not
-inspect mesh internals. Keep the stand separate from the animated phone. Use Drei
-`useGLTF` and preloading when actual assets are introduced.
+Follow [the asset workflow](docs/ASSETS.md). Put a normalized glTF 2.0 model under
+`public/models/<slot>/` and opt in via `src/scene/assets/catalog.ts`. Slots are
+`computer`, `phone`, `television`, and `console`; the latter two share navigation
+ID `console`. The empty default catalog makes no asset requests and preserves all
+procedural visuals. No decorative or production models have been added.
+
+`AssetVisual` replaces only the visual children. Dedicated invisible hitboxes,
+device identifiers, screen anchors, camera targets, and phone pickup remain outside
+the loader. A local Suspense/error boundary keeps the placeholder visible while
+loading or on failure; a small live status announces progress without blocking
+exploration. Drei caches files, and each mounted model gets its own scene clone
+while sharing geometry/materials safely. Model transforms never recalibrate the
+camera or HTML projection. Draco/Meshopt and remote decoders are disabled.
 
 ### Camera and screen rendering
 
@@ -212,6 +227,31 @@ roots, iframe integration, or interactive screen textures. Future React/PixiJS
 content can mount in `ConsoleInterface`'s bounded game viewport.
 
 ### Validation and current limits
+
+Phase 1.6 validation passed 12 native Node tests plus TypeScript, lint, and the
+production build. Chromium checks retained all three geometry/HTML entry points,
+camera poses, screen projections (within 1px of their projected corners), keyboard
+and focus behavior, Back/Escape, rapid navigation, reduced motion, 320px/390px
+portrait, landscape, and WebGL fallback. Synthetic, browser-only fixtures exercised
+slow GLB loading, successful GLB and GLTF with a relative `.bin`, malformed data,
+404 responses, and a failed lazy-loader request. Expected injected failures kept
+their individual procedural fallbacks and usable device interfaces; no production
+model or fixture is shipped.
+
+The default desktop overview was pixel-identical to its pre-change capture.
+Measured at 1440×900, DPR 1, software WebGL: **464 draw calls, 6,525 triangles**,
+unchanged from the baseline, with **zero new frames during a 400ms idle sample**.
+Invisible hitboxes add no rendered geometry or shadows. These are reference
+measurements, not physical-phone FPS guarantees.
+
+The complete normal-scene JavaScript changed from **1,241,118 → 1,247,174 bytes**
+raw, or approximately **345.6 → 347.8 kB** using consistent gzip level 9 (+2.2 kB).
+The optional loader chunks total **71,315 bytes raw / 20,821 gzip** and were
+confirmed absent from default browser requests. No overall bundle reduction is
+claimed; the added fallback/hitbox infrastructure has a small normal-path cost.
+The production preview loaded every emitted asset with the expected MIME type
+and no missing application files or runtime errors. Three.js remains the largest
+chunk; do not split it further without measuring the benefit.
 
 The Phase 1.5 review exercised Chromium at 1440×900, 390×844, 320px portrait, and
 844×390 landscape. Checks covered actual mesh clicks/taps (including console

@@ -2,6 +2,7 @@ import type { DeviceId } from '../state/navigation'
 
 export type Point3 = [number, number, number]
 export type ScreenBounds = { center: Point3; width: number; height: number }
+export type Hitbox = { center: Point3; size: Point3 }
 
 interface DeviceConfig {
   id: DeviceId
@@ -12,6 +13,7 @@ interface DeviceConfig {
   compactPosition: Point3
   compactScale: number
   screen: ScreenBounds
+  hitboxes: Hitbox[]
 }
 
 // A model's local origin, interaction wrapper, and screen anchor survive GLB swaps.
@@ -20,16 +22,22 @@ export const devices: Record<DeviceId, DeviceConfig> = {
     id: 'computer', number: '01', name: 'Computer', category: 'Web projects',
     position: [0.15, 1.94, -0.7], compactPosition: [0.15, 1.94, -0.7], compactScale: 0.85,
     screen: { center: [0, 0.91, 0.081], width: 1.88, height: 1.1 },
+    hitboxes: [{ center: [0, 0.78, 0], size: [2.03, 1.56, 0.24] }],
   },
   phone: {
     id: 'phone', number: '02', name: 'Smartphone', category: 'Mobile apps',
     position: [2.02, 1.94, 0.05], compactPosition: [1.3, 1.94, 0.05], compactScale: 1,
     screen: { center: [0, 0.5, 0.052], width: 0.4, height: 0.8 },
+    hitboxes: [{ center: [0, 0.5, 0], size: [0.47, 0.94, 0.12] }],
   },
   console: {
     id: 'console', number: '03', name: 'Gaming setup', category: 'Games & experiments',
     position: [-3.1, 1.27, -1.55], compactPosition: [-1.18, 1.94, -1.35], compactScale: 0.6,
     screen: { center: [0, 0.9, 0.09], width: 2.03, height: 1.17 },
+    hitboxes: [
+      { center: [0, 0.88, 0], size: [2.2, 1.35, 0.22] },
+      { center: [-0.22, 0.06, 0.7], size: [0.5, 0.22, 0.35] },
+    ],
   },
 }
 
@@ -38,6 +46,17 @@ export const CAMERA_FOV = 52
 export const HOME_POSITION: Point3 = [0.15, 2.95, 4.7]
 export const HOME_TARGET: Point3 = [0.15, 2.77, -0.7]
 export const isCompact = (aspect: number) => aspect < 1.1
+
+export function getConsolePosition(compact: boolean): Point3 {
+  return [0.48, compact ? 0.12 : -0.6, compact ? 0.8 : 0.25]
+}
+
+export function getHitboxes(id: DeviceId, compact: boolean): Hitbox[] {
+  const hitboxes = devices[id].hitboxes
+  return id === 'console'
+    ? [...hitboxes, { center: getConsolePosition(compact), size: [0.66, 0.22, 0.64] }]
+    : hitboxes
+}
 
 export function getPlacement(id: DeviceId, compact: boolean, pickedUp = false) {
   const item = devices[id]

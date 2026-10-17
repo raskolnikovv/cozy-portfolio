@@ -9,6 +9,13 @@ export default defineConfig({
       output: {
         codeSplitting: {
           groups: [
+            // Keep optional model loaders out of the eagerly shared R3F/Three chunks.
+            {
+              name: 'gltf',
+              test: /node_modules[\\/](?:@react-three[\\/]drei[\\/]core[\\/](?:Gltf|Clone)\.|three-stdlib[\\/](?:loaders[\\/](?:GLTFLoader|DRACOLoader)\.|libs[\\/]MeshoptDecoder\.)|three[\\/]examples[\\/]jsm[\\/]utils[\\/]SkeletonUtils\.)/,
+              priority: 30,
+              includeDependenciesRecursively: false,
+            },
             { name: 'three', test: /node_modules[\\/]three[\\/]/, priority: 20 },
             { name: 'react-three', test: /node_modules[\\/]@react-three[\\/]/, priority: 10 },
           ],

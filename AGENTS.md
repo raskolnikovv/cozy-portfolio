@@ -5,6 +5,7 @@
 Quiet Space is an immersive, first-person 3D developer portfolio. The visitor is
 inside a cozy office; the office itself is the primary interface. Phase 1.5 provides
 procedural models and interactive device prototypes, not real projects or games.
+Phase 1.6 adds an optional model pipeline; its default catalog remains empty.
 
 **Never convert the main experience back into a conventional landing page,
 dashboard, or small embedded 3D diorama unless explicitly requested.** Keep the
@@ -34,6 +35,7 @@ additional dependency is currently needed.
 | `src/scene/devices.ts` | Shared device placements, screen bounds, responsive camera poses |
 | `src/scene/CameraRig.tsx` | GSAP travel, bounded pointer look, reduced motion |
 | `src/scene/OfficeCanvas.tsx`, `models/` | Renderer, lights, fallback, room and replaceable device geometry |
+| `src/scene/assets/`, `src/state/assets.ts`, `src/ui/AssetStatus.tsx` | Optional visual catalog, isolated GLTF loading/fallback and accessible status |
 | `src/scene/LabelProjection.tsx`, `ScreenProjection.tsx` | Main-DOM labels and screen alignment |
 | `src/ui/DeviceExperience.tsx`, `src/ui/devices/` | Accessible browser, app launcher, game library and nested screens |
 | `src/hooks/`, `src/styles.css`, `tests/` | Shared hooks, responsive styling, native Node regression tests |
@@ -61,6 +63,15 @@ abstractions, dependency churn, and weakening TypeScript or lint settings.
   wrapper; retain device identity, hit handling, and phone animation boundaries.
   Update screen anchors/placements in `devices.ts` rather than coupling camera or
   navigation to mesh internals. Keep the phone's stand on the desk during pickup.
+- Follow [docs/ASSETS.md](docs/ASSETS.md) for export dimensions, pivots, screen planes,
+  paths, cache ownership, and replacement checks. Opt in one slot in `assets/catalog.ts`;
+  retain procedural fallbacks. Invisible hitboxes are siblings of replaceable visuals,
+  never inferred from loaded geometry. TV and console have separate slots and share
+  navigation ID `console`. Asset state must never drive navigation locks.
+- Keep the loader lazy and per-slot Suspense/error boundaries local. Do not suspend
+  the office for one model, dispose shared cached resources, enable remote decoders,
+  or add asset preloads/dependencies without a measured need. Begin with self-contained
+  uncompressed GLB; export +Y up, +Z front and match `devices.ts` screen rectangles.
 - A future React/PixiJS game can mount inside `ConsoleInterface`'s game viewport;
   do not add an engine or embed Pirate Battle until requested.
 
@@ -106,6 +117,9 @@ required. Live server processes must restart in new tasks.
    focus, keyboard, touch, resize/orientation, reduced motion, and WebGL fallback.
    Check console errors and visually review desktop/mobile screenshots. Smoke-test
    the production build with `npm run preview`; use accessibility scans when available.
+   Asset work also requires slow/failed/malformed loads, retained clickable fallback,
+   successful GLB/GLTF loading, unchanged screen alignment, and a network check that
+   unconfigured assets/loaders are not requested. Review bundle gzip and render cost.
 4. Fix failures before committing. Report actual passed/failed/skipped checks and
    warnings separately. Known non-failing warnings: Three.js's >500 kB raw chunk
    and an upstream `THREE.Clock` deprecation. Do not hide warnings or disable checks.
