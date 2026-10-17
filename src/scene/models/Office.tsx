@@ -1,3 +1,5 @@
+import { useThree } from '@react-three/fiber'
+import { isCompact } from '../devices'
 import { Box, Plant } from './Primitives'
 import { Computer, GamingSetup, Smartphone } from './Devices'
 
@@ -56,12 +58,17 @@ function Room() {
       <Box size={[0.18, 5.7, 7.1]} color="#b0a184" position={[-5.59, 2.83, -0.04]} />
       <Box size={[11.1, 0.15, 0.08]} color="#8c6a48" position={[0, 0.13, -3.42]} />
       <Box size={[0.08, 0.15, 7]} color="#8c6a48" position={[-5.45, 0.13, 0]} />
+      <Box size={[11.2, 0.2, 9]} color="#ae8052" position={[0, -0.12, 7.9]} />
+      <Box size={[0.18, 5.7, 9.2]} color="#b0a184" position={[-5.59, 2.83, 7.9]} />
+      <Box size={[0.18, 5.7, 16.1]} color="#b7a78a" position={[5.59, 2.83, 4.5]} />
+      <Box size={[11.2, 0.18, 16.1]} color="#b6aa8d" position={[0, 5.77, 4.5]} />
       <ForestWindow />
     </group>
   )
 }
 
 function Furniture() {
+  const compact = useThree((s) => isCompact(s.size.width / s.size.height))
   return (
     <group>
       {/* The desk, kept independent of replaceable device models. */}
@@ -73,16 +80,18 @@ function Furniture() {
       <Box size={[1.42, 0.055, 0.49]} color="#d1c6a9" position={[0.08, 2.02, 0.35]} rotation={[0.02, 0, 0]} />
       {Array.from({ length: 36 }, (_, i) => <Box key={i} size={[0.078, 0.018, 0.066]} color="#737a69" position={[-0.51 + (i % 12) * 0.106, 2.055, 0.21 + Math.floor(i / 12) * 0.1]} />)}
       <mesh position={[1.17, 2.035, 0.37]} scale={[0.105, 0.065, 0.15]} castShadow><sphereGeometry args={[1, 8, 6]} /><meshStandardMaterial color="#c6bfa4" flatShading /></mesh>
+      <group position={compact ? [2.3, 0.82, 0.2] : [0.38, 0.15, 0]}>
       {/* Low media cabinet and its open console shelf. */}
       <Box size={[2.65, 0.12, 1.06]} color="#ae7b4a" position={[-3.48, 1.04, -1.5]} />
       <Box size={[2.65, 0.12, 1.06]} color="#97633d" position={[-3.48, 0.28, -1.5]} />
       {[-4.72, -2.24].map((x) => <Box key={x} size={[0.14, 0.78, 1.06]} color="#a16e43" position={[x, 0.64, -1.5]} />)}
       <Box size={[2.4, 0.62, 0.05]} color="#78583c" position={[-3.48, 0.64, -2]} />
       {[-4.55, -2.4].map((x) => <Box key={x} size={[0.12, 0.25, 0.12]} color="#6d4b32" position={[x, 0.13, -1.5]} />)}
+      </group>
       {/* Woven rug and a compact reading chair. */}
       <Box size={[5.5, 0.028, 2.7]} color="#b5a17c" position={[0.5, 0.03, 1.65]} />
       {[-1.15, -0.97, 2.9, 3.08].map((x) => <Box key={x} size={[0.035, 0.006, 2.65]} color="#7d846c" position={[x, 0.048, 1.65]} />)}
-      <group position={[0.1, 0, 2.13]} rotation={[0, -0.16, 0]}>
+      <group position={[4.1, 0, 3.7]} rotation={[0, -0.16, 0]}>
         {[[-0.44, -0.35], [0.44, -0.35], [-0.44, 0.42], [0.44, 0.42]].map(([x, z], i) => <Box key={i} size={[0.08, 0.73, 0.08]} color="#5c5039" position={[x, 0.36, z]} rotation={[0.12, 0, x > 0 ? -0.1 : 0.1]} />)}
         <Box size={[1.25, 0.24, 1.12]} color="#65735b" position={[0, 0.83, 0]} />
         <Box size={[1.26, 1.05, 0.2]} color="#718165" position={[0, 1.38, 0.45]} rotation={[-0.12, 0, 0]} />
@@ -123,7 +132,7 @@ function Decor() {
     <group>
       <Plant position={[4.5, 0.03, -2.5]} scale={2.1} />
       <Plant position={[-4.65, 0.03, 1.1]} scale={1.65} />
-      <Plant position={[-1.72, 1.98, -0.73]} scale={0.68} />
+      <Plant position={[-2.1, 1.98, -1.0]} scale={0.56} />
       <DeskLamp />
       <SleepingCat />
       {/* A few books and a plant, rather than an asset-heavy collection. */}

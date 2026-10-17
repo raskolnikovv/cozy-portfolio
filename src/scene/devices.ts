@@ -1,41 +1,71 @@
 import type { DeviceId } from '../state/navigation'
 
 export type Point3 = [number, number, number]
+export type ScreenBounds = { center: Point3; width: number; height: number }
 
 interface DeviceConfig {
   id: DeviceId
   number: string
   name: string
   category: string
-  description: string
   position: Point3
-  label: Point3
-  camera: { position: Point3; target: Point3 }
+  compactPosition: Point3
+  compactScale: number
+  screen: ScreenBounds
 }
 
-// These transforms are shared by models, labels, and the camera. A GLB can replace
-// a model's children later without changing navigation or the HTML interface.
+// A model's local origin, interaction wrapper, and screen anchor survive GLB swaps.
 export const devices: Record<DeviceId, DeviceConfig> = {
-  web: {
-    id: 'web', number: '01', name: 'The desktop', category: 'Web development',
-    description: 'Thoughtful things for the web.',
-    position: [0.15, 1.94, -0.7], label: [0.15, 3.65, -0.7],
-    camera: { position: [0.15, 3.2, 4.7], target: [0.15, 2.65, -0.7] },
+  computer: {
+    id: 'computer', number: '01', name: 'Computer', category: 'Web projects',
+    position: [0.15, 1.94, -0.7], compactPosition: [0.15, 1.94, -0.7], compactScale: 0.85,
+    screen: { center: [0, 0.91, 0.081], width: 1.88, height: 1.1 },
   },
-  mobile: {
-    id: 'mobile', number: '02', name: 'The phone', category: 'Mobile apps',
-    description: 'Little ideas. Pocket-sized.',
-    position: [2.02, 1.94, 0.05], label: [2.45, 2.95, 0.1],
-    camera: { position: [2.35, 2.95, 3.05], target: [2.02, 2.38, 0.05] },
+  phone: {
+    id: 'phone', number: '02', name: 'Smartphone', category: 'Mobile apps',
+    position: [2.02, 1.94, 0.05], compactPosition: [1.3, 1.94, 0.05], compactScale: 1,
+    screen: { center: [0, 0.5, 0.052], width: 0.4, height: 0.8 },
   },
-  games: {
-    id: 'games', number: '03', name: 'The console', category: 'Games & experiments',
-    description: 'A little curiosity. A little play.',
-    position: [-3.48, 1.12, -1.55], label: [-4.45, 3.3, -1.55],
-    camera: { position: [-3.48, 2.85, 4.3], target: [-3.48, 2.03, -1.55] },
+  console: {
+    id: 'console', number: '03', name: 'Gaming setup', category: 'Games & experiments',
+    position: [-3.1, 1.27, -1.55], compactPosition: [-1.18, 1.94, -1.35], compactScale: 0.6,
+    screen: { center: [0, 0.9, 0.09], width: 2.03, height: 1.17 },
   },
 }
 
-export const deviceList = [devices.web, devices.mobile, devices.games]
-export const HOME_TARGET: Point3 = [0, 1.9, -0.6]
-export const HOME_POSITION: Point3 = [8.6, 7.1, 12.6]
+export const deviceList = [devices.computer, devices.phone, devices.console]
+export const CAMERA_FOV = 52
+export const HOME_POSITION: Point3 = [0.15, 2.95, 4.7]
+export const HOME_TARGET: Point3 = [0.15, 2.77, -0.7]
+export const isCompact = (aspect: number) => aspect < 1.1
+
+export function getPlacement(id: DeviceId, compact: boolean, pickedUp = false) {
+  const item = devices[id]
+  if (id === 'phone' && pickedUp) return { position: [0.15, 2.3, 1.1] as Point3, scale: 1.4 }
+  return { position: compact ? item.compactPosition : item.position, scale: compact ? item.compactScale : 1 }
+}
+
+export function getScreen(id: DeviceId, compact: boolean): ScreenBounds {
+  const { position, scale } = getPlacement(id, compact, id === 'phone')
+  const screen = devices[id].screen
+  return {
+    center: screen.center.map((value, i) => position[i] + value * scale) as Point3,
+    width: screen.width * scale, height: screen.height * scale,
+  }
+}
+
+export function getCameraPose(view: 'office' | DeviceId, aspect: number) {
+  const compact = isCompact(aspect)
+  if (view === 'office') {
+    // Stay at eye level inside the extended room, even in narrow portrait views.
+    const distance = compact ? Math.max(5.6, Math.min(10.8, 3.8 / aspect)) : HOME_POSITION[2]
+    return { position: [HOME_POSITION[0], HOME_POSITION[1], distance] as Point3, target: HOME_TARGET }
+  }
+  const screen = getScreen(view, compact)
+  const tangent = Math.tan(CAMERA_FOV * Math.PI / 360)
+  const distance = Math.max(screen.height / (2 * tangent * 0.72), screen.width / (2 * tangent * aspect * 0.9))
+  return {
+    position: [screen.center[0], screen.center[1], screen.center[2] + distance] as Point3,
+    target: screen.center,
+  }
+}
