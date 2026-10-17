@@ -1,141 +1,119 @@
-# Development guide
+# Quiet Space development guide
 
-## Purpose and scope
+## Product contract
 
-Quiet Space is a personal portfolio imagined as a cozy, stylized low-poly developer
-office. Phase 1 is working: primitive models, three device destinations, cinematic
-camera transitions, and placeholder interfaces. Preserve these behaviors. Begin
-Phase 2, real portfolio content, playable games, GLB integration, audio, or complex
-rain only when explicitly requested. Prefer the smallest maintainable solution;
-avoid speculative abstractions, unrelated refactoring, and dependency churn.
+Quiet Space is an immersive, first-person 3D developer portfolio. The visitor is
+inside a cozy office; the office itself is the primary interface. Phase 1.5 provides
+procedural models and interactive device prototypes, not real projects or games.
 
-## Visual direction
+**Never convert the main experience back into a conventional landing page,
+dashboard, or small embedded 3D diorama unless explicitly requested.** Keep the
+scene full viewport, the camera inside the room at human eye level, and the HUD
+minimal. Do not add a traditional portfolio route without a separate request.
 
-- Warm interior lighting, wooden furniture, muted greens, cream, and clay accents.
-- A peaceful rainy forest, distant mountains, and atmospheric mist outside; no city
-  skyline or sunset. Rain is currently suggested by static window marks.
-- Keep the computer centered, smartphone on the desk's right, and TV/game console
-  on the left. Devices must remain recognizable and easy to select.
-- Preserve the plants, sleeping cat, uncluttered composition, and calm indie-game
-  mood. Prioritize framing and interaction over decorative complexity.
-- Camera moves should feel smooth and cinematic, remain interruptible, and return
-  reliably to the overview. The overview is composed, not freely orbitable.
+- Center: computer → a browser with selectable placeholder web-project tabs.
+- Right: smartphone → simulated pickup, app launcher, and placeholder app screens.
+- Left: TV and console → game library and placeholder launch screens. Pirate Battle
+  has a reserved entry; it is not integrated or playable yet.
+- Warm wood and interior lighting contrast with a rainy forest, distant mountains,
+  and mist. Keep the stylized low-poly look, plants, books, and sleeping cat.
+- Prioritize composition, recognizable devices, readable screens, and interactions.
+  Detailed GLBs, real applications, game integration, complex rain, and audio await
+  explicit future milestones. Preserve working features; avoid unrelated refactors.
 
-## Architecture
+## Stack and organization
 
-The stack is React, strict TypeScript, Vite, Three.js, React Three Fiber, Drei,
-GSAP, Zustand, and Tailwind CSS v4. There is no backend or router.
+Use the existing React, strict TypeScript, Vite, Three.js, React Three Fiber, Drei,
+GSAP, Zustand, and Tailwind CSS v4 stack. No backend, router, physics engine, or
+additional dependency is currently needed.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/App.tsx` | Page composition, keyboard handling, focus restoration |
-| `src/state/navigation.ts` | Shared view, hover, and camera-transition state |
-| `src/scene/devices.ts` | Typed device registry, model transforms, label anchors, camera poses |
-| `src/scene/OfficeCanvas.tsx` | Renderer, lights, loading/error and WebGL fallbacks |
-| `src/scene/CameraRig.tsx` | GSAP camera transitions and responsive framing |
-| `src/scene/models/` | Replaceable geometry, room, furniture, and pointer interaction |
-| `src/scene/LabelProjection.tsx` | Projects world anchors into existing HTML label elements |
-| `src/ui/` | Accessible HTML labels, controls, device panels, and native dialog |
-| `src/hooks/`, `src/styles.css` | Shared hooks, Tailwind entry point, responsive styling |
+| `src/App.tsx` | Full-viewport composition, discreet HUD/menu, Escape and focus restoration |
+| `src/state/navigation.ts` | `office / computer / phone / console`, hover, travel lock, transition IDs |
+| `src/scene/devices.ts` | Shared device placements, screen bounds, responsive camera poses |
+| `src/scene/CameraRig.tsx` | GSAP travel, bounded pointer look, reduced motion |
+| `src/scene/OfficeCanvas.tsx`, `models/` | Renderer, lights, fallback, room and replaceable device geometry |
+| `src/scene/LabelProjection.tsx`, `ScreenProjection.tsx` | Main-DOM labels and screen alignment |
+| `src/ui/DeviceExperience.tsx`, `src/ui/devices/` | Accessible browser, app launcher, game library and nested screens |
+| `src/hooks/`, `src/styles.css`, `tests/` | Shared hooks, responsive styling, native Node regression tests |
 
-Keep scene rendering, camera logic, application state, and HTML UI separate. Use
-Zustand selectors for shared navigation; keep temporary UI state local. Device
-content and labels belong in the main React DOM tree, not additional React roots
-or screen textures. Preserve the projection's camera-matrix update.
+Follow nearby code: two spaces, single quotes, no semicolons, ES modules, functional
+components/hooks, PascalCase component files, and camelCase values. Use `import
+type`, typed device IDs, and narrow Zustand selectors. Keep transient interface
+state local. Avoid `any`, unexplained assertions/suppressions, speculative
+abstractions, dependency churn, and weakening TypeScript or lint settings.
 
-For future GLBs, replace geometry inside `InteractiveDevice`, retaining its event
-wrapper and registry identity. Normalize models to the existing local origin and
-dimensions; adjust intentional anchor changes in `devices.ts`. Keep navigation
-and camera behavior independent of model internals. Load assets only when needed.
+## Camera, navigation, and asset boundaries
 
-## Coding conventions
+- Use a perspective camera with a natural field of view (currently 52°). Preserve
+  eye-level framing and keep all devices visible across viewport sizes. Compact
+  layouts adjust placements and camera distance without leaving the room.
+- Desktop pointer look changes only a small, damped look offset. No unrestricted
+  orbit, FPS/WASD movement, or accidental camera escape. Touch uses a stable camera.
+- Navigation entry locks atomically. Ignore conflicting device requests while
+  traveling or inside another device. Back/Escape can interrupt travel; stale
+  completion IDs must never unlock a newer transition. Clean up GSAP timelines.
+- Device UI is HTML in the main React tree, aligned with the physical screen after
+  camera arrival. Active cameras face screen planes directly. Keep hidden/traveling
+  interfaces inert and preserve nested selection when resizing/reframing.
+- Normalize future GLBs to the existing origin/dimensions inside the interaction
+  wrapper; retain device identity, hit handling, and phone animation boundaries.
+  Update screen anchors/placements in `devices.ts` rather than coupling camera or
+  navigation to mesh internals. Keep the phone's stand on the desk during pickup.
+- A future React/PixiJS game can mount inside `ConsoleInterface`'s game viewport;
+  do not add an engine or embed Pirate Battle until requested.
 
-- Follow nearby code: two-space indentation, single quotes, no semicolons,
-  functional components, hooks, and ES modules. Use `import type` for type imports.
-- Use PascalCase for components/component files, `useCamelCase` for hooks, and
-  camelCase for functions and values. Reuse typed device IDs and configuration.
-- Keep TypeScript strict. Avoid `any`, unexplained type assertions, and lint/type
-  suppressions. Fix causes instead of weakening configuration.
-- Keep components focused; extract shared behavior when duplication warrants it.
-  Clean up GSAP timelines, subscriptions, and listeners. Support Strict Mode.
-- Use existing Tailwind utilities and semantic CSS classes; respect responsive
-  breakpoints and reduced-motion rules. Do not add a second styling system.
-- Install with `npm ci`. Change manifests/lockfiles only for an intentional
-  dependency change; justify new dependencies and keep the lockfile consistent.
+## Accessibility, mobile, and performance
 
-## Accessibility and responsive behavior
+Keep named HTML controls alongside mesh interactions. Support Tab, Enter/Space,
+arrow-key project tabs, visible focus, readable AA contrast, live status, and usable
+touch targets. Never rely on hover or color alone. Focus a ready device interface;
+restore its label (or fallback menu button) on exit. Nested app/game Back controls
+restore launcher focus. Keep the device menu keyboard usable and Escape dismissible.
 
-- Every device must remain usable by mouse, keyboard, and touch through named HTML
-  buttons as well as scene interactions. Never require hovering to discover or act.
-- Preserve Tab navigation, Enter/Space activation, visible focus, and readable
-  contrast. Do not convey state through color alone; provide usable touch targets.
-- Selecting a device focuses its panel heading. Back, close, and Escape return to
-  the office and restore focus to the device navigation. Preserve dialog focus
-  containment, Escape dismissal, and return focus.
-- Keep semantic headings, accessible names, navigation state, and live status
-  announcements. Decorative graphics should not add screen-reader noise.
-- Honor live `prefers-reduced-motion` changes: skip camera travel and suppress
-  decorative CSS motion. Keep the HTML workflow usable when WebGL fails.
-- Check narrow screens (including 320px), portrait/landscape, and desktop. Prevent
-  horizontal overflow, overlapping labels, and panels obscuring the selected device.
+Respect live `prefers-reduced-motion`: skip camera travel, phone animation, pointer
+look, and decorative CSS motion. If WebGL fails, the menu and every HTML device
+interface must remain functional. Test desktop, 320px/390px portrait, and landscape;
+prevent viewport overflow, clipped navigation, unreadable screens, and UI overlap.
+Use scrollable device content on small screens instead of obscuring the room with
+an unrelated modal. Physical-device testing complements browser emulation.
 
-## Performance
+Preserve demand rendering, explicit invalidation during motion, capped DPR (1–1.5),
+lazy scene loading, and one 1024px shadow-casting light. No continuous idle loops or
+heavy postprocessing. Reuse vectors/resources, avoid per-frame React state updates,
+and inspect draw calls, bundle sizes, and mobile smoothness before adding cost.
 
-Preserve demand rendering, explicit invalidation during camera animation, capped
-pixel ratio (currently 1–1.5), lazy scene loading, and one shadow-casting light with
-a 1024px shadow map. Do not introduce continuous idle animation or postprocessing
-without a clear need. Reuse geometry/materials where practical; keep assets small.
-Avoid allocations and React state updates in frame callbacks. When adding visual
-cost, inspect draw calls, asset/bundle sizes, and camera smoothness on mobile;
-optimize measured problems rather than adding complexity preemptively.
+## Validation and Git workflow
 
-## Running and validation
+Use the Node version in `.node-version` (24.19.0; supported minimum 22.12) and npm.
+See [README.md](README.md) for local/Cloud startup and mobile preview options. Cloud
+tasks are already isolated: use `/workspace/cozy-portfolio`; do not create a Git
+worktree unless requested. No credentials, environment variables, or backend are
+required. Live server processes must restart in new tasks.
 
-See [README.md](README.md) for local/Cloud startup and mobile preview options. Use
-the Node version in `.node-version` (validated: 24.19.0); the supported minimum is
-22.12. No environment variables, credentials, or external services are required.
-Cloud tasks are already isolated: use `/workspace/cozy-portfolio` and do not create
-a Git worktree unless requested. Run the server in a persistent execution session;
-processes must restart after a new Cloud task or snapshot restoration.
+1. Inspect `git status`, active branch, relevant code, and existing user work.
+   Preserve unrelated changes and untracked files; use small, focused milestones.
+2. Run against final changes before **every** commit, including documentation:
 
-Run all three checks against the final changes **before every commit**, including
-documentation milestones:
+   ```sh
+   npm run typecheck && npm run lint && npm test && npm run build
+   ```
 
-```sh
-npm run typecheck && npm run lint && npm run build
-```
-
-There is no checked-in unit/E2E suite or `npm test` command. These checks do not
-prove visual behavior. For UI, scene, camera, or state changes, also run the app
-and smoke-test all three devices: geometry clicks and hover, HTML controls, panel
-content, camera arrival, rapid switching, Back/close/Escape, and focus restoration.
-Check keyboard, touch, resizing, reduced motion, WebGL fallback, and browser console
-errors. Inspect the changed views visually. For rendering/loading changes, also
-serve the production build with `npm run preview`; use a browser accessibility
-scanner when available. Documentation-only work requires the three commands and
-review of command/path accuracy, without adding a test framework.
-
-Report checks actually executed, failures, skipped checks, and warnings distinctly.
-Vite currently warns that the Three.js chunk exceeds 500 kB before compression;
-the build succeeds. Do not suppress that warning or disable checks to claim success.
-
-## Git workflow
-
-1. Inspect branch, status, and relevant files before editing. Preserve existing
-   edits and untracked files. Do not change unrelated files or start another phase.
-2. Complete one small, focused milestone. Update documentation when behavior or
-   setup changes; verify existing working features still behave correctly.
-3. Run the required checks above and any relevant smoke tests. Fix failures before
-   committing; report external blockers instead of making an unverified commit.
-4. Stage explicit paths for that milestone. Review `git diff --cached` and run
-   `git diff --cached --check`; do not sweep unrelated or pre-existing untracked
-   files into a commit. Never include secrets, generated output, or dependencies.
-5. Create a commit after each completed, tested milestone. Use a concise,
-   descriptive Conventional Commit subject: `type(scope): imperative summary`.
-   Examples: `docs(workflow): document development conventions`,
-   `fix(camera): preserve phone framing in portrait`,
-   `feat(scene): add a replaceable desk model`. Scope is optional; use `docs`,
-   `feat`, `fix`, `refactor`, `test`, `perf`, or `chore` as appropriate.
-6. Report the checks, commit hash, branch, and remaining work. Do not push unless
-   explicitly authorized. Do not amend, rebase, reset, force-push, or otherwise
-   rewrite Git history without explicit authorization.
+3. Native Node tests cover navigation races and camera/screen framing. For UI,
+   camera, scene, or state changes, also verify all mesh and HTML entry points,
+   screen alignment, tabs/apps/games, rapid clicks, cancellation, Back/Escape,
+   focus, keyboard, touch, resize/orientation, reduced motion, and WebGL fallback.
+   Check console errors and visually review desktop/mobile screenshots. Smoke-test
+   the production build with `npm run preview`; use accessibility scans when available.
+4. Fix failures before committing. Report actual passed/failed/skipped checks and
+   warnings separately. Known non-failing warnings: Three.js's >500 kB raw chunk
+   and an upstream `THREE.Clock` deprecation. Do not hide warnings or disable checks.
+5. Stage explicit milestone paths, review `git diff --cached`, and run
+   `git diff --cached --check`. Exclude secrets, dependencies, build output, and
+   unrelated work. Local screenshots in `.local/review/` are ignored artifacts.
+6. Commit each completed, tested milestone with a descriptive Conventional Commit,
+   such as `feat(office): improve first-person device framing` or
+   `docs(workflow): document immersive experience standards`.
+7. Report changes, validation, branch, and commit hashes. Never push automatically
+   or amend, rebase, reset, force-push, or rewrite history without authorization.

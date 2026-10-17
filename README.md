@@ -1,8 +1,13 @@
 # Quiet Space
 
-A cozy, primitive-built 3D developer office. Phase 1 is an interactive prototype;
-the device interfaces are deliberately placeholders, with no actual portfolio
-projects, game launches, backend, audio, or rain simulation.
+An immersive, first-person developer portfolio. The full-viewport office is the
+interface: a computer straight ahead, a smartphone on the right, and a TV/console
+on the left, with a rainy forest outside the window.
+
+**Phase 1.5** replaces the earlier editorial landing page and isometric diorama.
+Device screens are interactive prototypes: web-project tabs, an app launcher, and
+a game library with a reserved Pirate Battle entry. There are no real applications,
+playable games, backend, audio, or rain simulation yet.
 
 ## Develop
 
@@ -22,6 +27,7 @@ cache is read-only, prefix installation with
 ```sh
 npm run typecheck
 npm run lint
+npm test
 npm run build
 npm run preview
 ```
@@ -72,65 +78,112 @@ Conventional Commits, for example `docs(workflow): document development conventi
 Before every commit, including documentation changes, run:
 
 ```sh
-npm run typecheck && npm run lint && npm run build
+npm run typecheck && npm run lint && npm test && npm run build
 ```
 
 Review the staged diff and stage only relevant files. Preserve working features;
-do not push automatically or rewrite history. There is no checked-in unit/E2E test
-suite yet. Changes to interactions or visuals also need browser smoke checks as
-described in `AGENTS.md`. The production build currently emits a non-failing
-warning about the Three.js chunk size; report it rather than suppressing it.
+do not push automatically or rewrite history. `npm test` uses Node's built-in test
+runner and type stripping, without another test dependency. Its six regression
+tests cover atomic entry, cancellation, stale completion, hover guards, eye-level
+room bounds, and viewport/screen fitting. UI and visual changes also need browser
+smoke checks as described in `AGENTS.md`. The production build emits a non-failing
+Three.js chunk-size warning; R3F also triggers an upstream `THREE.Clock` deprecation.
+Report these warnings rather than suppressing them.
 
 ## Explore
 
-Click or tap the computer, phone, or television—or use their HTML labels and the
-device navigation below the scene. Keyboard users can Tab to a device and press
-Enter or Space. **Back to the office**, the panel close button, or **Escape** returns
-to the overview. Focus returns to the selected device's navigation button.
-Reduced-motion settings skip camera animation. If WebGL is unavailable, the HTML
-navigation and device interfaces still work.
+Click or tap a device, its scene label, or an entry in the discreet device menu.
+Keyboard users can Tab to controls and press Enter or Space.
+
+- **Computer:** the camera approaches the monitor and an HTML browser aligns with
+  its screen. Switch between three project tabs; Left/Right, Home, and End also
+  navigate tabs. Content is explicitly placeholder material.
+- **Phone:** the phone lifts off its stand while the camera approaches. Tap Notes,
+  Weather, Focus, or Habits to open a placeholder app. **All apps** returns to the
+  launcher and restores focus. Selection survives orientation changes.
+- **TV or console:** the TV activates and displays a game library. Select Pirate
+  Battle or another entry for a placeholder launch screen; **Game library** returns.
+  No game engine or actual game is loaded.
+
+**Back to Office** or **Escape** returns to the original office pose and restores
+focus. Entry is locked during camera travel; Back/Escape can cancel safely. Desktop
+pointer movement adds bounded look motion. Touch uses a stable camera. Reduced-motion
+settings skip travel, pickup, and pointer look. If WebGL is unavailable, use the
+menu to access the same HTML interfaces. No separate traditional portfolio route
+has been built.
 
 ## Structure
 
 ```text
 src/
   scene/
-    devices.ts              # Device IDs, world transforms, camera poses
-    CameraRig.tsx           # Interruptible GSAP transitions, portrait framing
-    OfficeCanvas.tsx        # Renderer, lighting, failure fallback
+    devices.ts              # Placements, screen bounds, responsive camera poses
+    CameraRig.tsx           # GSAP travel and bounded desktop pointer look
+    OfficeCanvas.tsx        # Renderer, lighting, WebGL/error fallback
+    LabelProjection.tsx     # World-anchored HTML navigation labels
+    ScreenProjection.tsx    # HTML rectangles aligned with physical device screens
     models/
       Office.tsx            # Room, forest, furniture, simple decorations
-      Devices.tsx           # Replaceable placeholder device meshes
-      InteractiveDevice.tsx # Shared pointer interaction
+      Devices.tsx           # Replaceable devices and phone pickup animation
+      InteractiveDevice.tsx # Shared guarded pointer interactions
       Primitives.tsx        # Small reusable geometry helpers
-    LabelProjection.tsx     # Projects world anchors into the main HTML tree
-  state/navigation.ts       # Zustand navigation and hover state
+  state/navigation.ts       # View, hover, transition lock and generation IDs
   hooks/useReducedMotion.ts
-  ui/                       # Accessible HTML interfaces and controls
-  App.tsx                   # Page composition, keyboard and focus management
-  styles.css                # Tailwind entry point and visual design
+  ui/
+    DeviceExperience.tsx    # Screen composition and readiness/focus handling
+    SceneLabels.tsx         # Accessible device entry controls
+    devices/                # Computer, phone, and console HTML interfaces
+    Icon.tsx
+  App.tsx                   # Full viewport, minimal HUD/menu, Escape, return focus
+  styles.css                # Tailwind entry, HUD and responsive screen interfaces
+tests/navigation.test.mjs    # Six native Node navigation/framing regressions
 ```
 
 ### Replacing models
 
-Replace each device's geometry inside `InteractiveDevice` with a loaded GLB,
-normalized to the existing local origin and approximate dimensions. Keep the
-wrapper: it owns pointer events and device selection. Camera and label
-anchors live in `scene/devices.ts`, separate from the models. Use Drei `useGLTF`
-and preloading when actual assets are introduced; no model loader or external
-assets are needed for this phase.
+Replace geometry inside `InteractiveDevice` with a normalized GLB, retaining its
+device identity, interaction wrapper, and phone animation boundaries. World
+placements and local screen bounds live in `scene/devices.ts`; navigation does not
+inspect mesh internals. Keep the stand separate from the animated phone. Use Drei
+`useGLTF` and preloading when actual assets are introduced.
 
-### Choices and limits
+### Camera and screen rendering
 
-- One scene and one navigation store, without a router or physics engine.
-- Device content uses HTML, keeping text crisp, responsive, and keyboard usable.
-  It is a companion panel, not a fully interactive screen texture.
-- The overview is intentionally composed rather than freely orbitable, so framing
-  and device camera transitions remain predictable on touch and keyboard.
-- Demand rendering, capped pixel ratio, one shadow-casting light, shared simple
-  geometry patterns, and no postprocessing or continuously animated weather.
-- Fog-colored forest layers and static window streaks suggest rain. Real rain,
-  audio, detailed GLBs, and portfolio content belong to future phases.
+The initial camera sits inside the room at eye level, with a 52° perspective field
+of view. Portrait layouts compact the devices and adjust distance while keeping
+the camera inside. Desktop pointer look uses a damped, bounded target offset; there
+is no FPS/WASD movement or unrestricted orbit.
 
-Phase 2 is not started. Commit each completed, tested development milestone;
-push only with explicit authorization.
+Zustand locks entry atomically and assigns transition IDs. GSAP moves camera position
+and target over 0.9 seconds, killing superseded timelines; only the current ID can
+complete travel. The phone has a separate 0.75-second lift/scale/orientation tween.
+Reduced motion makes these operations immediate. Back can interrupt a move.
+
+Focused cameras face device screen planes directly. `ScreenProjection` projects
+their corners into a rectangle in the main HTML tree, so text stays crisp and the
+interface sits inside the visible bezel. It is hidden/inert during travel, then
+focused on arrival. Local nested state stays mounted during reframing and resets
+when leaving the device. This intentionally avoids a browser engine, extra React
+roots, iframe integration, or interactive screen textures. Future React/PixiJS
+content can mount in `ConsoleInterface`'s bounded game viewport.
+
+### Validation and current limits
+
+The Phase 1.5 review exercised Chromium at 1440×900, 390×844, 320px portrait, and
+844×390 landscape. Checks covered actual mesh clicks/taps (including console
+hardware), camera destinations, bounded look, tabs, nested app/game screens,
+Back/Escape, rapid input/cancellation, focus restoration, reduced motion,
+orientation persistence, production loading, accessibility scans, and a genuinely
+WebGL-disabled fallback. Normal rendering produced no runtime errors. Browser
+emulation does not establish physical-phone GPU performance or Safari compatibility.
+
+Review screenshots are local, ignored artifacts in `.local/review/`:
+`desktop-office.png`, `computer-focused.png`, `phone-focused.png`,
+`console-focused.png`, and `mobile-office.png`. They are not application assets or
+an automated visual baseline; recapture them after relevant changes.
+
+Demand rendering, capped DPR, one shadow-casting light, simple low-poly geometry,
+and lazy scene loading keep the prototype modest. Static streaks and layered forest
+geometry suggest the weather. Detailed assets, real projects/games, rain simulation,
+and audio belong to separately authorized future milestones. Preserve the immersive
+first-person entry point; do not return it to a conventional landing page or diorama.
