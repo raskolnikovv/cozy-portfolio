@@ -37,11 +37,13 @@ rebuild after changes. It is a local verification server, not a production host.
 
 ### Deploy to Netlify
 
-Import the repository as a Vite site, using these build settings:
+Import the repository as a Vite site. The root `netlify.toml` explicitly sets the
+build directory, command, and published output for Git-connected deploys, taking
+precedence over matching settings in the Netlify UI:
 
 | Setting | Value |
 | --- | --- |
-| Base directory | Repository root (leave blank) |
+| Base directory | Repository root (`.` in `netlify.toml`) |
 | Build command | `npm run build` |
 | Publish directory | `dist` |
 | Node.js | Use the committed `.node-version` (24.19.0) |
@@ -58,10 +60,16 @@ at the domain root; JavaScript, CSS, and lazy scene chunks are emitted into
 `dist/assets/`. All current geometry and device interfaces are bundled locally;
 there are no external models, textures, fonts, or runtime API dependencies.
 
-No `netlify.toml` is needed for these standard build settings. Device navigation
-uses Zustand without changing the URL, so there are no client-side routes and no
-SPA rewrite is required. If URL routes are introduced later, add a fallback such
-as `/* /index.html 200` in `public/_redirects` and recheck direct visits/reloads.
+After changing build settings, trigger a new deploy and confirm that this new
+deploy reaches **Published**; saving settings does not rebuild an existing deploy.
+Its deployed file browser should contain `index.html`, `favicon.svg`, and `assets/`
+at the root. Publishing the source `index.html` with its `/src/main.tsx` entry
+instead of the generated `dist/index.html` can produce an empty page.
+
+Device navigation uses Zustand without changing the URL, so there are no
+client-side routes and no SPA rewrite is required. If URL routes are introduced
+later, add a fallback such as `/* /index.html 200` in `public/_redirects` and recheck
+direct visits/reloads. Do not force-rewrite asset requests to HTML.
 
 Before deploying, run the validation commands below and smoke-test the built site
 with `npm run preview`, including all three devices. After the first real Netlify
