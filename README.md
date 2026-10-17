@@ -35,6 +35,42 @@ npm run preview
 `npm run preview` serves the built `dist/` directory, normally on port 4173;
 rebuild after changes. It is a local verification server, not a production host.
 
+### Deploy to Netlify
+
+Import the repository as a Vite site, using these build settings:
+
+| Setting | Value |
+| --- | --- |
+| Base directory | Repository root (leave blank) |
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Node.js | Use the committed `.node-version` (24.19.0) |
+| Application environment variables / API keys | None |
+
+Keep `package-lock.json` committed and install build-time devDependencies: Vite,
+TypeScript, and Tailwind are needed to generate `dist/`. The deployed site serves
+only static output; it does not run Node, Vite, or `npm run preview` on requests.
+For a manual upload, build first and upload the contents of `dist/`, not the source
+checkout. Do not enable a server-rendering adapter or add functions for this app.
+
+Vite's default root base and `/favicon.svg` are correct for a Netlify site served
+at the domain root; JavaScript, CSS, and lazy scene chunks are emitted into
+`dist/assets/`. All current geometry and device interfaces are bundled locally;
+there are no external models, textures, fonts, or runtime API dependencies.
+
+No `netlify.toml` is needed for these standard build settings. Device navigation
+uses Zustand without changing the URL, so there are no client-side routes and no
+SPA rewrite is required. If URL routes are introduced later, add a fallback such
+as `/* /index.html 200` in `public/_redirects` and recheck direct visits/reloads.
+
+Before deploying, run the validation commands below and smoke-test the built site
+with `npm run preview`, including all three devices. After the first real Netlify
+deploy, check its HTTPS URL on desktop and a physical phone, confirm the favicon
+and lazy scene chunks return successfully, and check the browser console. Local
+production validation does not establish that Netlify's build or deployment ran.
+Known limitations are the Three.js bundle-size/Clock warnings and device-specific
+WebGL performance; the HTML fallback remains available without WebGL.
+
 ### Cloud development
 
 Use the existing checkout at `/workspace/cozy-portfolio`. Cloud tasks are already
